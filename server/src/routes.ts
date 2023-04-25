@@ -61,8 +61,8 @@ router.post('/login', passport.authenticate('local'), async (req, res) => {
   res.json({ accessToken })
 })
 
-router.post('/refreshToken', async (req, res) => {
-  const { refreshTokenCookie } = req.signedCookies
+router.post('/refresh', async (req, res) => {
+  const { refreshToken: refreshTokenCookie } = req.signedCookies
 
   const employee = await prisma.employee.findFirst({
     where: { refreshToken: refreshTokenCookie },
@@ -84,7 +84,32 @@ router.post('/refreshToken', async (req, res) => {
     },
   })
 
+  res.cookie('refreshToken', refreshToken, COOKIE_OPTIONS)
   res.send({ ok: true, accessToken })
+})
+
+router.post('/logout', verifyUser, async (req, res) => {
+  console.log(req.user)
+
+  const employee = await prisma.employee.findFirst({
+    where: { id: req.user!.userId },
+  })
+
+  if (!employee) {
+    return res.status(401).json({ msg: 'Unauthorized' }) // can be whatever
+  }
+
+  // update tokens
+  await prisma.employee.update({
+    where: { id: employee.id },
+    data: {
+      accessToken: null,
+      refreshToken: null,
+    },
+  })
+
+  res.clearCookie('refreshToken', COOKIE_OPTIONS)
+  res.send({ ok: true })
 })
 
 router.get('/me', verifyUser, (req, res) => {
