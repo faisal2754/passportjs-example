@@ -43,8 +43,8 @@ const Home: NextPage = () => {
               Login
             </button>
           </form>
-          <a className="mt-4 underline" href="/register">
-            Register instead
+          <a className="mt-4 underline" href="/sign-up">
+            Sign up instead
           </a>
         </div>
       </main>

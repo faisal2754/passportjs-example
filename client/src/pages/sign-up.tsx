@@ -2,17 +2,70 @@ import { type NextPage } from "next";
 import Head from "next/head";
 import { FormEvent, useState } from "react";
 import { toast } from "react-hot-toast";
+import { useRouter } from "next/router";
 
-const Register: NextPage = () => {
+import { axiosInstance } from "@/utils/axios";
+import { useUserStore } from "@/store/user";
+import { useMutation } from "@tanstack/react-query";
+
+type TSignUpResponse = {
+  accessToken: string;
+};
+
+type TSignUpBody = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  password: string;
+};
+
+const SignUp: NextPage = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const router = useRouter();
+
+  const userStore = useUserStore((state) => state);
+
+  const signUpMutation = useMutation({
+    mutationFn: async (body: TSignUpBody) => {
+      const res = await axiosInstance.post<TSignUpResponse>("/signup", body, {
+        withCredentials: true,
+      });
+      return res.data;
+    },
+    onMutate: () => {
+      setIsLoading(true);
+    },
+    onSuccess: (data) => {
+      console.log(data.accessToken);
+      userStore.setAccessToken(data.accessToken);
+      toast.success("Signed up!");
+      router.push("/protected");
+    },
+    onError: (error) => {
+      console.log(error);
+      toast.error("Something went wrong :(");
+    },
+    onSettled: () => {
+      setIsLoading(false);
+    },
+  });
 
   const handleLogin = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast("Signing up...");
+    signUpMutation.mutate({
+      firstName,
+      lastName,
+      phone,
+      email,
+      password,
+    });
   };
 
   return (
@@ -79,8 +132,9 @@ const Register: NextPage = () => {
             <button
               className="mx-auto mt-2 w-full rounded-md bg-slate-300 p-2 px-4 font-bold text-black"
               type="submit"
+              disabled={isLoading}
             >
-              Sign up
+              {isLoading ? "..." : "Sign Up"}
             </button>
           </form>
           <a className="mt-4 underline" href="/">
@@ -92,4 +146,4 @@ const Register: NextPage = () => {
   );
 };
 
-export default Register;
+export default SignUp;
